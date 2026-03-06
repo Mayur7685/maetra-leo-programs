@@ -12,8 +12,8 @@ Maetra uses three Leo programs deployed on Aleo testnet to provide privacy-prese
 | `maetra_subscription.aleo` | `at1g2y9txst0d334kt5lcshsnvykgnwcfmd0jpvfwur7tt2qma94yqsxaev6k` | Private subscription records |
 | `maetra_content.aleo` | `at1jp0lnxeynnp0zn7uqhdtgf257m3ghg87s5zqdnt23ey47wxshqpq0nfmww` | Content hash registry |
 
-Deployer address: `aleo14c2afj8u0mdgqe8drgx...`
-Network: **testnet** | Endpoint: `https://api.explorer.provable.com/v1`
+- Deployer address: `aleo14c2afj8u0mdgqe8drgx5h65qealr3wtl8n9c9vgt3c8zy20q8ggsvpvq8k`
+- Network: **testnet** | Endpoint: `https://api.explorer.provable.com/v1`
 
 ---
 
