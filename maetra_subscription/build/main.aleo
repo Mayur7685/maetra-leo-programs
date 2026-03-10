@@ -1,4 +1,5 @@
-program maetra_subscription.aleo;
+import credits.aleo;
+program maetra_subscription_v3.aleo;
 
 record SubscriptionRecord:
     owner as address.private;
@@ -19,7 +20,7 @@ function set_price:
     gt r0 0u64 into r1;
     assert.eq r1 true;
     async set_price self.caller r0 into r2;
-    output r2 as maetra_subscription.aleo/set_price.future;
+    output r2 as maetra_subscription_v3.aleo/set_price.future;
 
 finalize set_price:
     input r0 as address.public;
@@ -28,27 +29,30 @@ finalize set_price:
 
 function subscribe:
     input r0 as address.public;
-    input r1 as u64.private;
+    input r1 as u64.public;
     input r2 as u64.public;
     assert.neq self.caller r0;
     gt r1 0u64 into r3;
     assert.eq r3 true;
     gt r2 0u64 into r4;
     assert.eq r4 true;
-    cast self.caller r0 r1 r2 into r5 as SubscriptionRecord.record;
-    async subscribe r0 r1 into r6;
-    output r5 as SubscriptionRecord.record;
-    output r6 as maetra_subscription.aleo/subscribe.future;
+    call credits.aleo/transfer_public_as_signer r0 r1 into r5;
+    cast self.caller r0 r1 r2 into r6 as SubscriptionRecord.record;
+    async subscribe r5 r0 r1 into r7;
+    output r6 as SubscriptionRecord.record;
+    output r7 as maetra_subscription_v3.aleo/subscribe.future;
 
 finalize subscribe:
-    input r0 as address.public;
-    input r1 as u64.public;
-    get.or_use subscription_prices[r0] 0u64 into r2;
-    gte r1 r2 into r3;
-    assert.eq r3 true;
-    get.or_use subscriber_counts[r0] 0u64 into r4;
-    add r4 1u64 into r5;
-    set r5 into subscriber_counts[r0];
+    input r0 as credits.aleo/transfer_public_as_signer.future;
+    input r1 as address.public;
+    input r2 as u64.public;
+    await r0;
+    get.or_use subscription_prices[r1] 0u64 into r3;
+    gte r2 r3 into r4;
+    assert.eq r4 true;
+    get.or_use subscriber_counts[r1] 0u64 into r5;
+    add r5 1u64 into r6;
+    set r6 into subscriber_counts[r1];
 
 function verify_subscription:
     input r0 as SubscriptionRecord.record;

@@ -1,7 +1,9 @@
 // The 'maetra_subscription' program.
 // Manages privacy-preserving subscriptions between followers and creators.
-// Subscribers receive a private SubscriptionRecord as proof of access.
-program maetra_subscription.aleo {
+// Uses transfer_public_as_signer to pay from subscriber's public balance.
+import credits.aleo;
+
+program maetra_subscription_v3.aleo {
 
     @noupgrade
     async constructor() {}
@@ -33,11 +35,12 @@ program maetra_subscription.aleo {
         subscription_prices.set(creator, price);
     }
 
-    // Subscriber pays to subscribe to a creator
-    // Returns a private SubscriptionRecord as proof
+    // Subscriber pays to subscribe to a creator.
+    // Uses transfer_public_as_signer — draws from subscriber's public credit balance.
+    // No private credits record needed.
     async transition subscribe(
         public creator: address,
-        private amount: u64,
+        public amount: u64,
         public duration_blocks: u64, // ~1 month ≈ 430_000 blocks at ~6s/block
     ) -> (SubscriptionRecord, Future) {
         // Cannot subscribe to yourself
@@ -45,21 +48,28 @@ program maetra_subscription.aleo {
         assert(amount > 0u64);
         assert(duration_blocks > 0u64);
 
+        // Transfer credits from subscriber's public balance to creator
+        let f1: Future = credits.aleo/transfer_public_as_signer(creator, amount);
+
         // Mint a SubscriptionRecord for the subscriber
         let sub: SubscriptionRecord = SubscriptionRecord {
             owner: self.caller,
             creator: creator,
             amount: amount,
-            expires_at: duration_blocks, // Will be added to block.height on-chain
+            expires_at: duration_blocks,
         };
 
-        return (sub, finalize_subscribe(creator, amount));
+        return (sub, finalize_subscribe(f1, creator, amount));
     }
 
     async function finalize_subscribe(
+        f1: Future,
         public creator: address,
         public amount: u64,
     ) {
+        // Await the credit transfer
+        f1.await();
+
         // Verify payment meets creator's price
         let price: u64 = subscription_prices.get_or_use(creator, 0u64);
         assert(amount >= price);

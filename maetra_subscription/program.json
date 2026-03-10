@@ -1,9 +1,16 @@
 {
-  "program": "maetra_subscription.aleo",
+  "program": "maetra_subscription_v3.aleo",
   "version": "0.1.0",
-  "description": "",
+  "description": "Privacy-preserving subscription management with credit transfers",
   "license": "MIT",
   "leo": "3.4.0",
-  "dependencies": null,
-  "dev_dependencies": null
+  "dependencies": [
+    {
+      "name": "credits.aleo",
+      "location": "network",
+      "path": null,
+      "edition": null
+    }
+  ],
+  "dev_dependencies": []
 }

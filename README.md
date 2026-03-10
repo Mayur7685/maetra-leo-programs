@@ -9,7 +9,7 @@ Maetra uses three Leo programs deployed on Aleo testnet to provide privacy-prese
 | Program | Transaction ID | Purpose |
 |---|---|---|
 | `maetra_trust.aleo` | `at1e42jduhvfxxen7e0pwmphpm8d2jklezq0glk2qgypzq6ktyz3gzqr4cxas` | ZK trust scores & leaderboard |
-| `maetra_subscription.aleo` | `at1g2y9txst0d334kt5lcshsnvykgnwcfmd0jpvfwur7tt2qma94yqsxaev6k` | Private subscription records |
+| `maetra_subscription_v3.aleo` | `at1d20cm8es7a8rez6vyja8ck5xn48jls53m58hs9jrpyrxtp3zwu8qumfvh6` | Private subscriptions with public credit transfers |
 | `maetra_content.aleo` | `at1jp0lnxeynnp0zn7uqhdtgf257m3ghg87s5zqdnt23ey47wxshqpq0nfmww` | Content hash registry |
 
 - Deployer address: `aleo14c2afj8u0mdgqe8drgx5h65qealr3wtl8n9c9vgt3c8zy20q8ggsvpvq8k`
@@ -73,11 +73,17 @@ Exchange API → Backend Pipeline → Leo Inputs → Wallet executes submit_perf
 
 ---
 
-## 2. maetra_subscription.aleo — Private Subscriptions
+## 2. maetra_subscription_v3.aleo — Private Subscriptions with Credit Transfers
 
 ### What it does
 
-Manages privacy-preserving subscriptions between followers and creators. Subscribers receive a **private SubscriptionRecord** as proof of access — no one else can see who subscribes to whom.
+Manages privacy-preserving subscriptions between followers and creators. Imports `credits.aleo` to perform **real credit transfers** from subscriber to creator via `transfer_private`. Subscribers receive a **private SubscriptionRecord** as proof of access — no one else can see who subscribes to whom.
+
+### Dependency
+
+```leo
+import credits.aleo;
+```
 
 ### Record type
 
@@ -102,20 +108,28 @@ record SubscriptionRecord {
 | Transition | Description |
 |---|---|
 | `set_price(public price: u64)` | Creator sets their subscription price |
-| `subscribe(public creator, private amount, public duration_blocks)` | Pay to subscribe; returns a private `SubscriptionRecord` |
+| `subscribe(public creator, public amount, public duration_blocks)` | Transfer credits from public balance to creator and mint a private `SubscriptionRecord` |
 | `verify_subscription(private sub, public creator)` | Verify a subscription is valid; re-mints the record |
 
 ### How the app uses it
 
 ```
-Creator sets price → Subscriber pays via wallet → Private record minted → Access granted
+Creator sets price → Subscriber's wallet executes subscribe → transfer_public_as_signer sends payment → Private SubscriptionRecord minted → Access granted
 ```
 
 1. Creator sets subscription price on My Page (stored on-chain via `set_price`)
 2. Subscriber clicks "Subscribe" on a creator's profile
-3. Wallet executes `subscribe` — payment happens on-chain, subscriber gets a private record
-4. Backend verifies subscription status for content access
+3. Wallet executes `subscribe` — `credits.aleo/transfer_public_as_signer` sends credits from the subscriber's public balance to the creator, subscriber gets a private `SubscriptionRecord`
+4. Backend verifies the on-chain transaction via explorer API, then grants DB access
 5. `verify_subscription` can be called to prove access without consuming the record
+
+### Version history
+
+| Version | Program ID | Change |
+|---|---|---|
+| v1 | `maetra_subscription.aleo` | No credit transfer — only minted SubscriptionRecord |
+| v2 | `maetra_subscription_v2.aleo` | Imports `credits.aleo`, `transfer_private` (requires private records) |
+| v3 | `maetra_subscription_v3.aleo` | Uses `transfer_public_as_signer` — works with public balance, no records needed |
 
 ---
 
@@ -200,7 +214,7 @@ Creator writes post → Backend encrypts & stores → Hash published on-chain �
 | File | Role |
 |---|---|
 | `programs/maetra_trust/src/main.leo` | Trust score ZK program |
-| `programs/maetra_subscription/src/main.leo` | Subscription management program |
+| `programs/maetra_subscription/src/main.leo` | Subscription management with credit transfers (v2) |
 | `programs/maetra_content/src/main.leo` | Content hash registry program |
 | `maetra-backend/src/lib/exchanges/pipeline.ts` | Proof pipeline (fetch → compute → format) |
 | `maetra-backend/src/lib/exchanges/hyperliquid.ts` | Hyperliquid API client |
